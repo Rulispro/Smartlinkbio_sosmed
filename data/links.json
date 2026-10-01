@@ -1,5 +1,14 @@
 {
-  "drafts": [],
+  "drafts": [
+    {
+      "id": "7410f98d-8eb4-429a-bcaa-2fa9af9eccc0",
+      "title": "Facebook",
+      "urls": [
+        "https://www.facebook.com/"
+      ],
+      "updatedAt": "2026-10-01T14:45:10.269Z"
+    }
+  ],
   "published": [
     {
       "id": "2f90787c-fef1-45ff-8dc0-ed796ed5e617",
