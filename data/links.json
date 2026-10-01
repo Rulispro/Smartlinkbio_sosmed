@@ -1,15 +1,5 @@
 {
-  "drafts": [
-    {
-      "id": "6c62336d-bb2f-4cbd-b414-3f6531dd9148",
-      "title": "Facebook",
-      "urls": [
-        "https://www.facebook.com/",
-        "https://opal.google/app/1WT5zD-vQQpiTy-FIeofb1cHZ63R0yl01"
-      ],
-      "updatedAt": "2026-10-01T13:56:06.551Z"
-    }
-  ],
+  "drafts": [],
   "published": [
     {
       "id": "2f90787c-fef1-45ff-8dc0-ed796ed5e617",
@@ -19,6 +9,16 @@
       ],
       "updatedAt": "2026-10-01T13:55:04.966Z",
       "publishedAt": "2026-10-01T13:55:08.019Z"
+    },
+    {
+      "id": "6c62336d-bb2f-4cbd-b414-3f6531dd9148",
+      "title": "Facebook",
+      "urls": [
+        "https://www.facebook.com/",
+        "https://opal.google/app/1WT5zD-vQQpiTy-FIeofb1cHZ63R0yl01"
+      ],
+      "updatedAt": "2026-10-01T13:56:06.551Z",
+      "publishedAt": "2026-10-01T13:56:12.412Z"
     }
   ]
 }
