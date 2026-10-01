@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -7,6 +8,7 @@
 <title>Affiliate Products</title>
 
 <style>
+
 *{
   box-sizing:border-box;
 }
@@ -95,15 +97,36 @@ input{
   padding:15px;
   margin-top:15px;
 }
+
+.retry{
+  border:0;
+  background:#2563eb;
+  color:#fff;
+  padding:10px 16px;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
 </style>
 </head>
 
+
 <body>
 
+
 <header>
-  <h1>Affiliate Products</h1>
-  <p>Temukan produk pilihan kami</p>
+
+  <h1>
+    Affiliate Products
+  </h1>
+
+  <p>
+    Temukan produk pilihan kami
+  </p>
+
 </header>
+
 
 <main>
 
@@ -111,17 +134,33 @@ input{
     id="search"
     type="search"
     placeholder="🔎 Cari produk..."
+    autocomplete="off"
   >
 
+
   <div id="products">
-    <p class="muted">Memuat produk...</p>
+
+    <p class="muted">
+      Memuat produk...
+    </p>
+
   </div>
 
 </main>
 
+
 <script>
 
+/* =========================
+   DATA PRODUK
+========================= */
+
 let products = [];
+
+
+/* =========================
+   API
+========================= */
 
 const API_URL = "/api/links";
 
@@ -152,7 +191,7 @@ function escapeHTML(value){
 
 
 /* =========================
-   LOAD PRODUCTS
+   LOAD PRODUK
 ========================= */
 
 async function loadProducts(){
@@ -160,12 +199,12 @@ async function loadProducts(){
   const box =
     document.getElementById("products");
 
+
   box.innerHTML =
     '<p class="muted">Memuat produk...</p>';
 
-  try{
 
-    console.log("Mengambil data dari:", API_URL);
+  try{
 
     const response =
       await fetch(
@@ -178,12 +217,6 @@ async function loadProducts(){
           }
         }
       );
-
-
-    console.log(
-      "API status:",
-      response.status
-    );
 
 
     if(!response.ok){
@@ -203,12 +236,6 @@ async function loadProducts(){
 
     const data =
       await response.json();
-
-
-    console.log(
-      "Data API:",
-      data
-    );
 
 
     if(
@@ -239,25 +266,30 @@ async function loadProducts(){
 
 
     box.innerHTML = `
+
       <div class="error">
-        <strong>Gagal memuat produk</strong>
-        <br><br>
+
+        <strong>
+          Gagal memuat produk
+        </strong>
+
+        <br>
+        <br>
+
         ${escapeHTML(error.message)}
-        <br><br>
+
+        <br>
+        <br>
+
         <button
+          class="retry"
           onclick="loadProducts()"
-          style="
-            border:0;
-            background:#2563eb;
-            color:white;
-            padding:10px 16px;
-            border-radius:8px;
-            cursor:pointer;
-          "
         >
           Coba Lagi
         </button>
+
       </div>
+
     `;
 
   }
@@ -266,7 +298,7 @@ async function loadProducts(){
 
 
 /* =========================
-   RENDER
+   TAMPILKAN PRODUK
 ========================= */
 
 function render(){
@@ -274,8 +306,10 @@ function render(){
   const search =
     document.getElementById("search");
 
+
   const box =
     document.getElementById("products");
+
 
   const q =
     search.value
@@ -295,6 +329,10 @@ function render(){
     });
 
 
+  /* =========================
+     TIDAK ADA PRODUK
+  ========================= */
+
   if(!found.length){
 
     box.innerHTML =
@@ -305,40 +343,81 @@ function render(){
   }
 
 
+  /* =========================
+     RENDER PRODUK
+  ========================= */
+
   box.innerHTML =
     found.map(function(product){
 
+
+      /*
+       * Ambil semua URL
+       *
+       * Contoh data:
+       *
+       * urls: [
+       *   "https://link1.com",
+       *   "https://link2.com",
+       *   "https://link3.com"
+       * ]
+       *
+       * Tetapi di halaman user
+       * hanya ditampilkan SATU tombol.
+       */
+
       const urls =
         Array.isArray(product.urls)
-          ? product.urls
+          ? product.urls.filter(Boolean)
           : [];
 
 
+      /*
+       * Gunakan LINK PERTAMA
+       */
+
+      const firstUrl =
+        urls.length > 0
+          ? urls[0]
+          : "#";
+
+
       return `
+
         <article class="item">
 
           <h2>
             ${escapeHTML(product.title)}
           </h2>
 
-          ${
-            urls.map(function(url,index){
 
-              return `
+          ${
+            firstUrl !== "#"
+
+              ? `
+
                 <a
                   class="link"
-                  href="${escapeHTML(url)}"
+                  href="${escapeHTML(firstUrl)}"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Lihat Produk ${index + 1} ↗
+                  Lihat Produk ↗
                 </a>
-              `;
 
-            }).join("")
+              `
+
+              : `
+
+                <p class="muted">
+                  Link produk belum tersedia.
+                </p>
+
+              `
           }
 
         </article>
+
       `;
 
     }).join("");
@@ -359,12 +438,13 @@ document
 
 
 /* =========================
-   START
+   JALANKAN
 ========================= */
 
 loadProducts();
 
 </script>
+
 
 </body>
 </html>
