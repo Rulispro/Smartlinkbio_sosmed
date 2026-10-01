@@ -1,5 +1,15 @@
 {
-  "drafts": [],
+  "drafts": [
+    {
+      "id": "f52d507c-9fa6-4b1f-8c1a-a410dc539140",
+      "title": "Facebook",
+      "urls": [
+        "https://www.facebook.com/",
+        "https://meta.ai/prompt/fbc0c090-3385-4d77-a685-1c440fe9787d?utm_source=facebook&utm_campaign=mobile_web&utm_medium=bookmark&utm_content=meta_section"
+      ],
+      "updatedAt": "2026-10-01T14:10:07.781Z"
+    }
+  ],
   "published": [
     {
       "id": "2f90787c-fef1-45ff-8dc0-ed796ed5e617",
