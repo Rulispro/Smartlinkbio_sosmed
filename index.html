@@ -1,41 +1,45 @@
-<!DOCTYPE html><html lang="id">
+<!DOCTYPE html>
+<html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Affiliate Products</title><style>
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
+<title>Affiliate Products</title>
+
+<style>
 *{
-  box-sizing:border-box
+  box-sizing:border-box;
 }
 
 body{
   margin:0;
   background:#f5f6fa;
   color:#202331;
-  font-family:Arial,sans-serif
+  font-family:Arial,sans-serif;
 }
 
 header{
   background:#fff;
   padding:22px 16px;
   text-align:center;
-  border-bottom:1px solid #eee
+  border-bottom:1px solid #eee;
 }
 
 header h1{
   margin:0;
-  font-size:24px
+  font-size:24px;
 }
 
 header p{
   color:#777;
   margin:8px 0 0;
-  font-size:14px
+  font-size:14px;
 }
 
 main{
   max-width:760px;
   margin:22px auto;
-  padding:0 14px
+  padding:0 14px;
 }
 
 input{
@@ -44,7 +48,7 @@ input{
   border:1px solid #ddd;
   border-radius:10px;
   font-size:15px;
-  outline-color:#2563eb
+  outline-color:#2563eb;
 }
 
 .item{
@@ -52,138 +56,248 @@ input{
   border:1px solid #eee;
   border-radius:12px;
   padding:16px;
-  margin-top:14px
+  margin-top:14px;
 }
 
 .item h2{
   font-size:18px;
-  margin:0 0 12px
+  margin:0 0 12px;
 }
 
 .link{
   display:block;
   text-decoration:none;
   background:#2563eb;
-  color:white;
+  color:#fff;
   padding:12px 14px;
   border-radius:8px;
   margin-top:8px;
   text-align:center;
-  font-weight:bold
+  font-weight:bold;
 }
 
 .link:hover{
-  background:#1d4ed8
+  background:#1d4ed8;
 }
 
 .muted{
   text-align:center;
   color:#777;
-  padding:25px
+  padding:25px;
 }
 
-</style></head><body><header>  <h1>Affiliate Products</h1>  <p>
-    Temukan produk pilihan kami
-  </p></header><main><input
-id="search"
-placeholder="🔎 Cari produk..."
-oninput="render()"
+.error{
+  text-align:center;
+  color:#dc2626;
+  background:#fff;
+  border:1px solid #fecaca;
+  border-radius:10px;
+  padding:15px;
+  margin-top:15px;
+}
+</style>
+</head>
 
-«»
+<body>
+
+<header>
+  <h1>Affiliate Products</h1>
+  <p>Temukan produk pilihan kami</p>
+</header>
+
+<main>
+
+  <input
+    id="search"
+    type="search"
+    placeholder="🔎 Cari produk..."
+  >
 
   <div id="products">
-    <p class="muted">
-      Memuat produk...
-    </p>
-  </div></main><script>
+    <p class="muted">Memuat produk...</p>
+  </div>
 
-let products=[];
+</main>
+
+<script>
+
+let products = [];
+
+const API_URL = "/api/links";
 
 
-/* Lindungi tampilan dari HTML */
+/* =========================
+   ESCAPE HTML
+========================= */
 
-const escapeHTML=s=>
-  String(s??"").replace(
+function escapeHTML(value){
+
+  return String(value ?? "").replace(
     /[&<>"']/g,
-    c=>({
-      "&":"&amp;",
-      "<":"&lt;",
-      ">":"&gt;",
-      '"':"&quot;",
-      "'":"&#39;"
-    }[c])
+
+    function(char){
+
+      return {
+        "&":"&amp;",
+        "<":"&lt;",
+        ">":"&gt;",
+        '"':"&quot;",
+        "'":"&#39;"
+      }[char];
+
+    }
   );
 
+}
 
-/* Load produk published */
 
-async function load(){
+/* =========================
+   LOAD PRODUCTS
+========================= */
+
+async function loadProducts(){
+
+  const box =
+    document.getElementById("products");
+
+  box.innerHTML =
+    '<p class="muted">Memuat produk...</p>';
 
   try{
 
-    const r=
+    console.log("Mengambil data dari:", API_URL);
+
+    const response =
       await fetch(
-        "/api/links",
+        API_URL + "?public=1&t=" + Date.now(),
         {
-          cache:"no-store"
+          method:"GET",
+          cache:"no-store",
+          headers:{
+            "Accept":"application/json"
+          }
         }
       );
 
-    if(!r.ok)
-      throw Error("Gagal memuat");
 
-    const d=
-      await r.json();
+    console.log(
+      "API status:",
+      response.status
+    );
 
-    products=
-      Array.isArray(d.published)
-      ? d.published
-      : [];
+
+    if(!response.ok){
+
+      const errorText =
+        await response.text();
+
+      throw new Error(
+        "API Error " +
+        response.status +
+        ": " +
+        errorText
+      );
+
+    }
+
+
+    const data =
+      await response.json();
+
+
+    console.log(
+      "Data API:",
+      data
+    );
+
+
+    if(
+      !data ||
+      !Array.isArray(data.published)
+    ){
+
+      throw new Error(
+        "Format data API tidak valid."
+      );
+
+    }
+
+
+    products =
+      data.published;
+
 
     render();
 
-  }catch(e){
 
-    document.getElementById(
-      "products"
-    ).innerHTML=
-      '<p class="muted">Produk belum dapat dimuat. Silakan coba lagi.</p>';
+  }catch(error){
+
+    console.error(
+      "Gagal memuat produk:",
+      error
+    );
+
+
+    box.innerHTML = `
+      <div class="error">
+        <strong>Gagal memuat produk</strong>
+        <br><br>
+        ${escapeHTML(error.message)}
+        <br><br>
+        <button
+          onclick="loadProducts()"
+          style="
+            border:0;
+            background:#2563eb;
+            color:white;
+            padding:10px 16px;
+            border-radius:8px;
+            cursor:pointer;
+          "
+        >
+          Coba Lagi
+        </button>
+      </div>
+    `;
 
   }
 
 }
 
 
-/* Render produk */
+/* =========================
+   RENDER
+========================= */
 
 function render(){
 
-  const q=
-    document
-      .getElementById("search")
-      .value
+  const search =
+    document.getElementById("search");
+
+  const box =
+    document.getElementById("products");
+
+  const q =
+    search.value
       .toLowerCase()
       .trim();
 
 
-  const found=
-    products.filter(
-      p=>
-        (p.title||"")
-        .toLowerCase()
-        .includes(q)
-    );
+  const found =
+    products.filter(function(product){
 
+      return String(
+        product.title || ""
+      )
+      .toLowerCase()
+      .includes(q);
 
-  const box=
-    document.getElementById(
-      "products"
-    );
+    });
 
 
   if(!found.length){
 
-    box.innerHTML=
+    box.innerHTML =
       '<p class="muted">Produk tidak ditemukan.</p>';
 
     return;
@@ -191,44 +305,66 @@ function render(){
   }
 
 
-  box.innerHTML=
-    found.map(p=>`
+  box.innerHTML =
+    found.map(function(product){
 
-      <article class="item">
+      const urls =
+        Array.isArray(product.urls)
+          ? product.urls
+          : [];
 
-        <h2>
-          ${escapeHTML(p.title)}
-        </h2>
 
-        ${
-          (
-            Array.isArray(p.urls)
-            ? p.urls
-            : []
-          ).map(
-            (u,i)=>`
+      return `
+        <article class="item">
 
-              <a
-                class="link"
-                href="${escapeHTML(u)}"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Lihat Produk ${i+1} ↗
-              </a>
+          <h2>
+            ${escapeHTML(product.title)}
+          </h2>
 
-            `
-          ).join("")
-        }
+          ${
+            urls.map(function(url,index){
 
-      </article>
+              return `
+                <a
+                  class="link"
+                  href="${escapeHTML(url)}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Lihat Produk ${index + 1} ↗
+                </a>
+              `;
 
-    `).join("");
+            }).join("")
+          }
+
+        </article>
+      `;
+
+    }).join("");
 
 }
 
 
-load();
+/* =========================
+   SEARCH
+========================= */
 
-</script></body>
+document
+  .getElementById("search")
+  .addEventListener(
+    "input",
+    render
+  );
+
+
+/* =========================
+   START
+========================= */
+
+loadProducts();
+
+</script>
+
+</body>
 </html>
