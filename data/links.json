@@ -1,12 +1,14 @@
 {
-  "drafts": [
+  "drafts": [],
+  "published": [
     {
       "id": "c00e7486-0281-4ab7-91b0-de130e9d89f8",
       "title": "Meta ai",
       "urls": [
         "https://meta.ai/prompt/fbc0c090-3385-4d77-a685-1c440fe9787d?utm_source=facebook&utm_campaign=mobile_web&utm_medium=bookmark&utm_content=meta_section"
       ],
-      "updatedAt": "2026-10-01T13:55:03.612Z"
+      "updatedAt": "2026-10-01T13:55:03.612Z",
+      "publishedAt": "2026-10-01T13:55:08.019Z"
     },
     {
       "id": "2f90787c-fef1-45ff-8dc0-ed796ed5e617",
@@ -14,8 +16,8 @@
       "urls": [
         "https://meta.ai/prompt/fbc0c090-3385-4d77-a685-1c440fe9787d?utm_source=facebook&utm_campaign=mobile_web&utm_medium=bookmark&utm_content=meta_section"
       ],
-      "updatedAt": "2026-10-01T13:55:04.966Z"
+      "updatedAt": "2026-10-01T13:55:04.966Z",
+      "publishedAt": "2026-10-01T13:55:08.019Z"
     }
-  ],
-  "published": []
+  ]
 }
