@@ -1,6 +1,4 @@
-
-<!DOCTYPE html>
-<html lang="id">
+<!DOCTYPE html><html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -13,15 +11,13 @@ main{max-width:800px;margin:20px auto;padding:0 14px}
 .card{background:white;border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px #0000000a}
 h2{font-size:19px;margin:0 0 14px}
 label{display:block;font-weight:bold;margin:13px 0 6px}
-input{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;font-size:15px}
+input,textarea{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;font-size:15px}
+textarea{min-height:100px;resize:vertical}
 button{border:0;border-radius:8px;padding:11px 14px;font-weight:bold;cursor:pointer;margin:5px 4px 0 0}
 .primary{background:#2563eb;color:white}
 .green{background:#16a34a;color:white}
 .red{background:#dc2626;color:white}
 .gray{background:#e5e7eb;color:#222}
-.urlrow{display:flex;gap:7px;margin:8px 0}
-.urlrow input{flex:1;min-width:0}
-.urlrow button{margin:0;width:42px;background:#fee2e2;color:#b91c1c}
 .entry{border:1px solid #e5e7eb;border-radius:9px;padding:13px;margin-top:10px;overflow-wrap:anywhere}
 .entry h3{margin:0 0 8px;font-size:16px}
 .entry p{font-size:13px;color:#555;margin:4px 0}
@@ -30,144 +26,611 @@ button{border:0;border-radius:8px;padding:11px 14px;font-weight:bold;cursor:poin
 .ok{background:#dcfce7;color:#166534}
 .err{background:#fee2e2;color:#991b1b}
 .small{font-size:13px;color:#666}
+.url-list{margin-top:10px;padding-left:18px}
+.url-list li{margin:6px 0;word-break:break-all}
+.actions{margin-top:8px}
 </style>
-</head>
-<body>
-<header><h1>Admin Panel</h1></header>
-<main>
-  <div class="card">
-    <h2>Login Admin</h2>
-    <div id="status" class="status"></div>
-    <label>Password Admin</label>
-    <input id="password" type="password" placeholder="Masukkan password admin">
-    <button class="primary" id="login">Masuk / Muat Data</button>
-    <p class="small">Password diverifikasi oleh API, bukan disimpan di halaman.</p>
-  </div>
+</head><body><header>
+  <h1>Admin Panel</h1>
+</header><main>  <div class="card">
+    <h2>Login Admin</h2><div id="status" class="status"></div>
 
-  <section id="panel" hidden>
-    <div class="card">
-      <h2 id="formHeading">Tambah Produk</h2>
-      <label>Judul Produk</label>
-      <input id="title" placeholder="Contoh: Hijab Premium">
-      <label>URL Affiliate</label>
-      <div id="urls"></div>
-      <button class="gray" id="addUrl">+ Tambah URL</button>
-      <br>
-      <button class="primary" id="save">Simpan Draft</button>
-      <button class="gray" id="cancel">Batal Edit</button>
-    </div>
+<label>Password Admin</label>
+<input id="password" type="password" placeholder="Masukkan password admin">
 
-    <div class="card">
-      <h2>Draft</h2>
-      <button class="green" id="publish">Publish Semua Draft</button>
-      <div id="drafts"></div>
-    </div>
+<button class="primary" id="login">
+  Masuk / Muat Data
+</button>
 
-    <div class="card">
-      <h2>Sudah Dipublikasikan</h2>
-      <div id="published"></div>
-    </div>
-  </section>
-</main>
-<script>
-let drafts=[],published=[],editingId=null;
+<p class="small">
+  Password diverifikasi oleh API, bukan disimpan di halaman.
+</p>
+
+  </div>  <section id="panel" hidden><div class="card">
+
+  <h2 id="formHeading">Tambah Produk</h2>
+
+  <label>Judul Produk</label>
+
+  <input
+    id="title"
+    placeholder="Contoh: Hijab Premium"
+  >
+
+  <label>URL Affiliate</label>
+
+  <textarea
+    id="links"
+    placeholder="https://link1.com, https://link2.com, https://link3.com"
+  ></textarea>
+
+  <p class="small">
+    Jika lebih dari satu link, pisahkan dengan koma.
+    Contoh: link1, link2, link3
+  </p>
+
+  <button class="primary" id="save">
+    Simpan Draft
+  </button>
+
+  <button class="gray" id="cancel">
+    Batal Edit
+  </button>
+
+  <button class="red" id="clear">
+    Hapus Input
+  </button>
+
+</div>
+
+
+<div class="card">
+
+  <h2>Draft</h2>
+
+  <button class="green" id="publish">
+    Publish Semua Draft
+  </button>
+
+  <div id="drafts"></div>
+
+</div>
+
+
+<div class="card">
+
+  <h2>Sudah Dipublikasikan</h2>
+
+  <div id="published"></div>
+
+</div>
+
+  </section></main><script>
+
+let drafts=[];
+let published=[];
+let editingId=null;
+
 const $=id=>document.getElementById(id);
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+const esc=s=>
+  String(s??"").replace(/[&<>"']/g,c=>({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
+  }[c]));
+
+
 function message(s,ok=false){
+
   $("status").textContent=s;
-  $("status").className="status show "+(ok?"ok":"err");
+
+  $("status").className=
+    "status show "+(ok?"ok":"err");
+
 }
-function password(){return $("password").value.trim();}
-function addUrl(value=""){
-  const row=document.createElement("div");
-  row.className="urlrow";
-  const input=document.createElement("input");
-  input.type="url";input.placeholder="https://...";input.value=value;
-  input.className="url";
-  const remove=document.createElement("button");
-  remove.type="button";remove.textContent="×";
-  remove.onclick=()=>{row.remove();if(!$("urls").children.length)addUrl();};
-  row.append(input,remove);$("urls").append(row);
+
+
+function password(){
+
+  return $("password").value.trim();
+
 }
+
+
+/* Membersihkan form */
+
 function clearForm(){
-  editingId=null;$("title").value="";$("urls").innerHTML="";
-  addUrl();$("formHeading").textContent="Tambah Produk";
+
+  editingId=null;
+
+  $("title").value="";
+
+  $("links").value="";
+
+  $("formHeading").textContent="Tambah Produk";
+
   $("save").textContent="Simpan Draft";
+
 }
+
+
+/* Ambil URL dari textarea */
+
+function getUrls(){
+
+  return $("links").value
+    .split(",")
+    .map(x=>x.trim())
+    .filter(Boolean);
+
+}
+
+
+/* API */
+
 async function api(action,extra={}){
+
   const r=await fetch("/api/links",{
-    method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({action,password:password(),...extra})
+
+    method:"POST",
+
+    headers:{
+      "Content-Type":"application/json"
+    },
+
+    body:JSON.stringify({
+      action,
+      password:password(),
+      ...extra
+    })
+
   });
+
   const d=await r.json();
-  if(!r.ok)throw Error(d.error||"Permintaan gagal");
+
+  if(!r.ok)
+    throw Error(d.error||"Permintaan gagal");
+
   return d;
+
 }
+
+
+/* Load data */
+
 async function load(){
-  if(!password()){message("Masukkan password admin.");return;}
+
+  if(!password()){
+
+    message("Masukkan password admin.");
+
+    return;
+
+  }
+
   try{
-    const r=await fetch("/api/links?admin=1",{
-      headers:{"x-admin-password":password()},cache:"no-store"
-    });
+
+    const r=await fetch(
+      "/api/links?admin=1",
+      {
+        headers:{
+          "x-admin-password":password()
+        },
+        cache:"no-store"
+      }
+    );
+
     const d=await r.json();
-    if(!r.ok)throw Error(d.error||"Login gagal");
-    drafts=d.drafts||[];published=d.published||[];
-    $("panel").hidden=false;render();message("Berhasil masuk dan memuat data.",true);
-  }catch(e){$("panel").hidden=true;message(e.message);}
+
+    if(!r.ok)
+      throw Error(d.error||"Login gagal");
+
+    drafts=d.drafts||[];
+
+    published=d.published||[];
+
+    $("panel").hidden=false;
+
+    render();
+
+    message(
+      "Berhasil masuk dan memuat data.",
+      true
+    );
+
+  }catch(e){
+
+    $("panel").hidden=true;
+
+    message(e.message);
+
+  }
+
 }
+
+
+/* Render */
+
 function render(){
-  $("drafts").innerHTML=drafts.length?drafts.map(p=>`
-    <div class="entry">
-      <h3>${esc(p.title)}</h3>
-      <p>${(p.urls||[]).map(esc).join("<br>")}</p>
-      <button class="primary" data-edit="${esc(p.id)}">Edit</button>
-      <button class="red" data-delete="${esc(p.id)}">Hapus</button>
-    </div>`).join(""):'<p class="small">Belum ada draft.</p>';
-  $("published").innerHTML=published.length?published.map(p=>`
-    <div class="entry">
-      <h3>${esc(p.title)}</h3>
-      <p>${(p.urls||[]).map(esc).join("<br>")}</p>
-      <span class="small">Published</span>
-    </div>`).join(""):'<p class="small">Belum ada produk yang dipublikasikan.</p>';
+
+  $("drafts").innerHTML=
+
+    drafts.length
+
+    ?
+
+    drafts.map(p=>`
+
+      <div class="entry">
+
+        <h3>${esc(p.title)}</h3>
+
+        <ul class="url-list">
+
+          ${(p.urls||[]).map((u,i)=>`
+
+            <li>
+              ${esc(u)}
+            </li>
+
+          `).join("")}
+
+        </ul>
+
+        <div class="actions">
+
+          <button
+            class="primary"
+            data-edit="${esc(p.id)}"
+          >
+            Edit
+          </button>
+
+          <button
+            class="red"
+            data-delete-draft="${esc(p.id)}"
+          >
+            Hapus
+          </button>
+
+        </div>
+
+      </div>
+
+    `).join("")
+
+    :
+
+    '<p class="small">Belum ada draft.</p>';
+
+
+  $("published").innerHTML=
+
+    published.length
+
+    ?
+
+    published.map(p=>`
+
+      <div class="entry">
+
+        <h3>${esc(p.title)}</h3>
+
+        <ul class="url-list">
+
+          ${(p.urls||[]).map((u,i)=>`
+
+            <li>
+              ${esc(u)}
+            </li>
+
+          `).join("")}
+
+        </ul>
+
+        <span class="small">
+          Published
+        </span>
+
+        <div class="actions">
+
+          <button
+            class="red"
+            data-delete-published="${esc(p.id)}"
+          >
+            Hapus
+          </button>
+
+        </div>
+
+      </div>
+
+    `).join("")
+
+    :
+
+    '<p class="small">Belum ada produk yang dipublikasikan.</p>';
+
 }
+
+
+/* Login */
+
 $("login").onclick=load;
-$("addUrl").onclick=()=>addUrl();
-$("cancel").onclick=clearForm;
+
+
+/* Simpan */
+
 $("save").onclick=async()=>{
+
   const title=$("title").value.trim();
-  const urls=[...document.querySelectorAll(".url")].map(x=>x.value.trim()).filter(Boolean);
-  if(!password())return message("Masukkan password admin.");
-  if(!title)return message("Judul produk wajib diisi.");
-  if(!urls.length)return message("Masukkan minimal satu URL.");
-  if(urls.some(u=>{try{return !["http:","https:"].includes(new URL(u).protocol)}catch{return true}}))
-    return message("Pastikan semua URL valid dan diawali http:// atau https://.");
+
+  const urls=getUrls();
+
+  if(!password())
+    return message("Masukkan password admin.");
+
+  if(!title)
+    return message("Judul produk wajib diisi.");
+
+  if(!urls.length)
+    return message("Masukkan minimal satu URL.");
+
+  if(
+    urls.some(u=>{
+      try{
+        return !["http:","https:"]
+          .includes(new URL(u).protocol);
+      }catch{
+        return true;
+      }
+    })
+  ){
+
+    return message(
+      "Pastikan semua URL valid dan diawali http:// atau https://."
+    );
+
+  }
+
+
   try{
-    await api("saveDraft",{item:{id:editingId||crypto.randomUUID(),title,urls,updatedAt:new Date().toISOString()}});
-    clearForm();await load();message("Draft berhasil disimpan.",true);
-  }catch(e){message(e.message);}
+
+    await api(
+      "saveDraft",
+      {
+        item:{
+          id:editingId||crypto.randomUUID(),
+          title,
+          urls,
+          updatedAt:new Date().toISOString()
+        }
+      }
+    );
+
+    clearForm();
+
+    await load();
+
+    message(
+      "Draft berhasil disimpan.",
+      true
+    );
+
+  }catch(e){
+
+    message(e.message);
+
+  }
+
 };
-$("drafts").addEventListener("click",async e=>{
-  const edit=e.target.dataset.edit,del=e.target.dataset.delete;
-  if(edit){
-    const p=drafts.find(x=>x.id===edit);if(!p)return;
-    editingId=p.id;$("title").value=p.title;$("urls").innerHTML="";
-    (p.urls||[]).forEach(addUrl);
-    $("formHeading").textContent="Edit Draft";$("save").textContent="Simpan Perubahan";
-    window.scrollTo({top:0,behavior:"smooth"});
+
+
+/* Batal edit */
+
+$("cancel").onclick=()=>{
+
+  clearForm();
+
+  message(
+    "Input dikosongkan.",
+    true
+  );
+
+};
+
+
+/* Hapus input */
+
+$("clear").onclick=()=>{
+
+  if(
+    $("title").value ||
+    $("links").value
+  ){
+
+    if(!confirm("Hapus judul dan semua link dari input?"))
+      return;
+
   }
-  if(del){
-    if(!confirm("Hapus draft ini?"))return;
-    try{await api("deleteDraft",{id:del});await load();message("Draft dihapus.",true);}
-    catch(e){message(e.message);}
+
+  clearForm();
+
+  message(
+    "Input berhasil dikosongkan.",
+    true
+  );
+
+};
+
+
+/* Tombol Edit / Hapus */
+
+$("drafts").addEventListener(
+  "click",
+  async e=>{
+
+    const edit=
+      e.target.dataset.edit;
+
+    const del=
+      e.target.dataset.deleteDraft;
+
+
+    /* EDIT */
+
+    if(edit){
+
+      const p=
+        drafts.find(x=>x.id===edit);
+
+      if(!p)return;
+
+      editingId=p.id;
+
+      $("title").value=
+        p.title||"";
+
+      $("links").value=
+        (p.urls||[]).join(", ");
+
+      $("formHeading").textContent=
+        "Edit Draft";
+
+      $("save").textContent=
+        "Simpan Perubahan";
+
+      window.scrollTo({
+        top:0,
+        behavior:"smooth"
+      });
+
+      return;
+
+    }
+
+
+    /* HAPUS DRAFT */
+
+    if(del){
+
+      if(
+        !confirm(
+          "Hapus draft ini?\nJudul dan semua link akan dihapus."
+        )
+      )
+        return;
+
+      try{
+
+        await api(
+          "deleteDraft",
+          {id:del}
+        );
+
+        if(editingId===del)
+          clearForm();
+
+        await load();
+
+        message(
+          "Draft berhasil dihapus.",
+          true
+        );
+
+      }catch(e){
+
+        message(e.message);
+
+      }
+
+    }
+
   }
-});
+);
+
+
+/* Hapus Published */
+
+$("published").addEventListener(
+  "click",
+  async e=>{
+
+    const id=
+      e.target.dataset.deletePublished;
+
+    if(!id)return;
+
+    if(
+      !confirm(
+        "Hapus produk yang sudah dipublikasikan?"
+      )
+    )
+      return;
+
+    try{
+
+      await api(
+        "deletePublished",
+        {id}
+      );
+
+      await load();
+
+      message(
+        "Produk published berhasil dihapus.",
+        true
+      );
+
+    }catch(e){
+
+      message(e.message);
+
+    }
+
+  }
+);
+
+
+/* Publish */
+
 $("publish").onclick=async()=>{
-  if(!drafts.length)return message("Tidak ada draft untuk dipublikasikan.");
-  if(!confirm("Publikasikan semua draft?"))return;
-  try{await api("publishAll");clearForm();await load();message("Draft berhasil dipublikasikan.",true);}
-  catch(e){message(e.message);}
+
+  if(!drafts.length)
+    return message(
+      "Tidak ada draft untuk dipublikasikan."
+    );
+
+  if(
+    !confirm(
+      "Publikasikan semua draft?"
+    )
+  )
+    return;
+
+  try{
+
+    await api("publishAll");
+
+    clearForm();
+
+    await load();
+
+    message(
+      "Draft berhasil dipublikasikan.",
+      true
+    );
+
+  }catch(e){
+
+    message(e.message);
+
+  }
+
 };
-addUrl();
-</script>
-</body>
+
+</script></body>
 </html>
