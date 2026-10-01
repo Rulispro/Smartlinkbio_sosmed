@@ -1,12 +1,14 @@
 {
-  "drafts": [
+  "drafts": [],
+  "published": [
     {
       "id": "0e16a17c-da97-41f3-acbe-b8682392c077",
       "title": "Facebook",
       "urls": [
         "https://www.facebook.com/"
       ],
-      "updatedAt": "2026-10-01T15:07:41.727Z"
+      "updatedAt": "2026-10-01T15:07:41.727Z",
+      "publishedAt": "2026-10-01T15:09:14.315Z"
     },
     {
       "id": "145ddc8f-d1a5-461b-8129-5507f4c29d74",
@@ -14,8 +16,8 @@
       "urls": [
         "http://6ab659c9750fe.site123.me"
       ],
-      "updatedAt": "2026-10-01T15:09:09.214Z"
+      "updatedAt": "2026-10-01T15:09:09.214Z",
+      "publishedAt": "2026-10-01T15:09:14.315Z"
     }
-  ],
-  "published": []
+  ]
 }
