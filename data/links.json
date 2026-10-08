@@ -15,17 +15,18 @@
     {
       "id": "opal",
       "name": "@Opal",
-      "drafts": [
+      "drafts": [],
+      "published": [
         {
           "id": "88420c82-d13b-45f3-992e-e29f43026839",
           "title": "Opal",
           "urls": [
             "https://opal.google/app/1WT5zD-vQQpiTy-FIeofb1cHZ63R0yl01"
           ],
-          "updatedAt": "2026-10-08T01:37:09.807Z"
+          "updatedAt": "2026-10-08T01:37:09.807Z",
+          "publishedAt": "2026-10-08T01:37:14.012Z"
         }
-      ],
-      "published": []
+      ]
     }
   ]
 }
