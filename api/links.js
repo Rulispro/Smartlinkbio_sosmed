@@ -77,13 +77,12 @@ async function getData() {
     throw new Error("Isi data/links.json bukan JSON yang valid.");
   }
 
-  // Fallback jika struktur lama
   if (!data.accounts) {
     data = {
       accounts: [
         {
           id: "default",
-          name: "Akun Utama",
+          name: "@utama",
           drafts: data.drafts || [],
           published: data.published || []
         }
@@ -102,7 +101,7 @@ async function saveData(data, sha) {
   return await gh(url, {
     method: "PUT",
     body: JSON.stringify({
-      message: "Update multi-account affiliate links",
+      message: "Update multi-account data",
       content,
       sha,
       branch: c.branch
@@ -116,8 +115,6 @@ export default async function handler(req, res) {
 
     if (req.method === "GET") {
       const { data } = await getData();
-      
-      // Public view (bisa filter berdasar accountId di query)
       const accountId = req.query.account || data.accounts[0]?.id;
       const account = data.accounts.find(a => a.id === accountId) || data.accounts[0];
 
@@ -145,8 +142,6 @@ export default async function handler(req, res) {
       checkPassword(body.password);
       const { data, sha } = await getData();
 
-      const accountId = body.accountId;
-
       // Tambah Akun Baru
       if (body.action === "addAccount") {
         const name = body.name ? body.name.trim() : "";
@@ -154,12 +149,12 @@ export default async function handler(req, res) {
         
         const newId = name.toLowerCase().replace(/[^a-z0-9]/g, "_");
         if (data.accounts.some(a => a.id === newId)) {
-          return res.status(400).json({ error: "Akun dengan nama tersebut sudah ada." });
+          return res.status(400).json({ error: "Akun dengan ID tersebut sudah ada." });
         }
 
         data.accounts.push({
           id: newId,
-          name: name,
+          name: name.startsWith("@") ? name : "@" + name,
           drafts: [],
           published: []
         });
@@ -168,6 +163,22 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, message: "Akun berhasil ditambahkan." });
       }
 
+      // Hapus Akun
+      if (body.action === "deleteAccount") {
+        const targetId = body.accountId;
+        if (data.accounts.length <= 1) {
+          return res.status(400).json({ error: "Minimal harus ada satu akun aktif." });
+        }
+
+        const index = data.accounts.findIndex(a => a.id === targetId);
+        if (index === -1) return res.status(404).json({ error: "Akun tidak ditemukan." });
+
+        data.accounts.splice(index, 1);
+        await saveData(data, sha);
+        return res.status(200).json({ success: true, message: "Akun berhasil dihapus." });
+      }
+
+      const accountId = body.accountId;
       const account = data.accounts.find(a => a.id === accountId);
       if (!account) {
         return res.status(404).json({ error: "Akun tidak ditemukan." });
