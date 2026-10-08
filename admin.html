@@ -46,7 +46,6 @@ button{border:0;border-radius:8px;padding:11px 14px;font-weight:bold;cursor:poin
   </div>
 
   <section id="panel" hidden>
-    <!-- BAR PEMILIH AKUN & HAPUS AKUN -->
     <div class="card">
       <h2>Switch Profiles (Pilih Akun)</h2>
       <div class="account-bar">
@@ -55,7 +54,6 @@ button{border:0;border-radius:8px;padding:11px 14px;font-weight:bold;cursor:poin
         <button class="red" id="deleteAccountBtn">Hapus Akun Ini</button>
       </div>
 
-      <!-- Form Tambah Akun Baru -->
       <div id="newAccountBox" hidden style="margin-top:12px; padding:12px; background:#f9fafb; border-radius:8px; border:1px solid #e5e7eb;">
         <label>Nama Akun / Profil (contoh: @simple_saja)</label>
         <input id="newAccountName" placeholder="Nama akun...">
@@ -65,7 +63,6 @@ button{border:0;border-radius:8px;padding:11px 14px;font-weight:bold;cursor:poin
         </div>
       </div>
 
-      <!-- Kotak Informasi URL Profil Terpilih & Tombol Copy/Buka -->
       <div class="profile-link-box">
         <div>
           <span class="small" style="display:block; color:#555;">URL Publik Profil Ini:</span>
@@ -124,7 +121,10 @@ function password() {
 }
 
 async function api(action, extra = {}) {
-  const accountId = $("accountSelect") ? $("accountSelect").value : "";
+  // Ambil accountId saat ini jika panel sudah terbuka
+  const accountSelectEl = $("accountSelect");
+  const accountId = (accountSelectEl && accountSelectEl.value) ? accountSelectEl.value : "";
+  
   const r = await fetch("/api/links", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -146,9 +146,20 @@ async function load() {
     if (!r.ok) throw Error(d.error || "Login gagal");
 
     accounts = d.accounts || [];
-    renderAccounts();
-    $("panel").hidden = false;
-    message("Berhasil masuk.", true);
+    
+    if (accounts.length > 0) {
+        $("panel").hidden = false;
+        renderAccounts();
+        message("Berhasil masuk.", true);
+    } else {
+        // Kasus jika file JSON kosong/baru
+        $("panel").hidden = false;
+        message("Berhasil masuk. Silahkan tambah akun baru.", true);
+        $("drafts").innerHTML = '';
+        $("published").innerHTML = '';
+        $("accountSelect").innerHTML = '';
+        $("profileUrlText").textContent = '-';
+    }
   } catch(e) {
     $("panel").hidden = true;
     message(e.message);
@@ -157,26 +168,39 @@ async function load() {
 
 function renderAccounts() {
   const select = $("accountSelect");
-  const selectedId = select.value || (accounts[0] ? accounts[0].id : "");
+  // Pertahankan seleksi jika memungkinkan
+  const previouslySelected = select.value;
   
   select.innerHTML = accounts.map(acc => `
-    <option value="${acc.id}" ${acc.id === selectedId ? "selected" : ""}>${esc(acc.name)}</option>
+    <option value="${acc.id}">${esc(acc.name)}</option>
   `).join("");
+
+  // Setel kembali ke yang sebelumnya atau yang pertama
+  if (previouslySelected && accounts.some(a => a.id === previouslySelected)) {
+      select.value = previouslySelected;
+  } else if (accounts.length > 0) {
+      select.value = accounts[0].id;
+  }
 
   changeActiveAccount();
 }
 
 function changeActiveAccount() {
-  const selectedId = $("accountSelect"].value \vert{}\vert{} $("accountSelect").value;
-  currentAccount = accounts.find(a => a.id === selectedId) || accounts[0];
+  const select = $("accountSelect");
+  if (!select || !select.value) {
+      currentAccount = null;
+      return;
+  }
+  
+  const selectedId = select.value;
+  currentAccount = accounts.find(a => a.id === selectedId);
   
   if (currentAccount) {
     drafts = currentAccount.drafts || [];
     published = currentAccount.published || [];
     
     // Update kotak URL publik profil
-    const currentUrl = window.location.origin + "/?account=" + currentAccount.id; // Sesuaikan routing jika memakai subfolder/subpath
-    // Atau jika berbasis path: window.location.origin + "/" + currentAccount.id
+    // Menggunakan format path: domain.com/id_akun
     const cleanUrl = window.location.origin + "/" + currentAccount.id;
     $("profileUrlText").textContent = cleanUrl;
     
@@ -186,15 +210,15 @@ function changeActiveAccount() {
 
 $("accountSelect").onchange = changeActiveAccount;
 
-// Tombol Copy URL Profil
 $("copyProfileUrl").onclick = () => {
   const url = $("profileUrlText").textContent;
-  navigator.clipboard.writeText(url).then(() => alert("URL profil berhasil disalin ke clipboard!"));
+  if(url === '-') return;
+  navigator.clipboard.writeText(url).then(() => alert("URL profil berhasil disalin!"));
 };
 
-// Tombol Buka URL Profil
 $("openProfileUrl").onclick = () => {
   const url = $("profileUrlText").textContent;
+  if(url === '-') return;
   window.open(url, "_blank");
 };
 
@@ -237,57 +261,49 @@ function render() {
 
 $("login").onclick = load;
 
-// Tambah Akun
 $("openAddAccountModal").onclick = () => { $("newAccountBox").hidden = false; };
-$("cancelNewAccount").onclick = () => { $("newAccountBox").hidden = true; };
+$("cancelNewAccount").onclick = () => { $("newAccountBox").hidden = true; $("newAccountName").value = ""; };
 $("saveNewAccount").onclick = async () => {
   const name = $("newAccountName").value.trim();
   if (!name) return alert("Nama akun tidak boleh kosong");
   try {
-    const res = await fetch("/api/links", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "addAccount", password: password(), name })
-    });
-    const d = await res.json();
-    if (!res.ok) throw new Error(d.error);
+    await api("addAccount", { name });
     $("newAccountName").value = "";
     $("newAccountBox").hidden = true;
-    load();
+    // Load ulang untuk mendapatkan data akun baru beserta ID yang di-generate backend
+    await load(); 
+    // Set select ke akun yang baru dibuat (asumsi akun baru ada di akhir array)
+    if(accounts.length > 0) {
+        $("accountSelect").value = accounts[accounts.length - 1].id;
+        changeActiveAccount();
+    }
   } catch (e) {
     alert(e.message);
   }
 };
 
-// Hapus Akun
 $("deleteAccountBtn").onclick = async () => {
-  const accountId = $("accountSelect").value;
-  const accountName = $("accountSelect").options[$("accountSelect").selectedIndex].text;
+  const select = $("accountSelect");
+  if (!select.value) return;
   
-  if (accounts.length <= 1) {
-    return alert("Tidak dapat menghapus akun terakhir yang tersisa.");
-  }
+  const accountId = select.value;
+  const accountName = select.options[select.selectedIndex].text;
   
   if (!confirm(`Yakin ingin menghapus akun "${accountName}" beserta seluruh link di dalamnya?`)) {
     return;
   }
 
   try {
-    const res = await fetch("/api/links", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "deleteAccount", password: password(), accountId })
-    });
-    const d = await res.json();
-    if (!res.ok) throw new Error(d.error);
-    load();
+    await api("deleteAccount", { accountId });
     alert("Akun berhasil dihapus.");
+    await load();
   } catch (e) {
     alert(e.message);
   }
 };
 
 $("save").onclick = async () => {
+  if(!currentAccount) return alert("Pilih atau tambah akun terlebih dahulu.");
   const title = $("title").value.trim();
   const urls = $("links").value.split(",").map(x => x.trim()).filter(Boolean);
   if (!title || !urls.length) return message("Judul dan minimal 1 URL wajib diisi.");
@@ -299,9 +315,26 @@ $("save").onclick = async () => {
     editingId = null;
     $("title").value = "";
     $("links").value = "";
-    load();
+    $("formHeading").textContent = "Tambah Link Produk";
+    $("cancel").style.display = "none";
+    await load();
     message("Draft disimpan.", true);
   } catch(e) { message(e.message); }
+};
+
+$("cancel").onclick = () => {
+    editingId = null;
+    $("title").value = "";
+    $("links").value = "";
+    $("formHeading").textContent = "Tambah Link Produk";
+    $("cancel").style.display = "none";
+};
+// Inisialisasi tombol batal sembunyi
+$("cancel").style.display = "none";
+
+$("clear").onclick = () => {
+    $("title").value = "";
+    $("links").value = "";
 };
 
 $("drafts").onclick = e => {
@@ -313,6 +346,8 @@ $("drafts").onclick = e => {
     editingId = p.id;
     $("title").value = p.title;
     $("links").value = p.urls.join(", ");
+    $("formHeading").textContent = "Edit Produk";
+    $("cancel").style.display = "inline-block";
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   if (del && confirm("Hapus draft ini?")) {
@@ -328,6 +363,7 @@ $("published").onclick = e => {
 };
 
 $("publish").onclick = () => {
+  if(!currentAccount || drafts.length === 0) return alert("Tidak ada draft untuk dipublikasikan.");
   if (confirm("Publikasikan semua draft?")) {
     api("publishAll").then(load);
   }
