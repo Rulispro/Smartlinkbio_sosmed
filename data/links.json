@@ -15,7 +15,16 @@
     {
       "id": "opal",
       "name": "@Opal",
-      "drafts": [],
+      "drafts": [
+        {
+          "id": "deff47e3-eabb-4069-b17a-ec4dfac8734d",
+          "title": "Opal",
+          "urls": [
+            "https://opal.google/app/1WT5zD-vQQpiTy-FIeofb1cHZ63R0yl01"
+          ],
+          "updatedAt": "2026-10-08T01:31:13.246Z"
+        }
+      ],
       "published": []
     }
   ]
