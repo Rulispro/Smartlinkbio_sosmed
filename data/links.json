@@ -11,22 +11,6 @@
       "name": "@PRODUKMURAH",
       "drafts": [],
       "published": []
-    },
-    {
-      "id": "opal",
-      "name": "@Opal",
-      "drafts": [],
-      "published": [
-        {
-          "id": "deff47e3-eabb-4069-b17a-ec4dfac8734d",
-          "title": "Opal",
-          "urls": [
-            "https://opal.google/app/1WT5zD-vQQpiTy-FIeofb1cHZ63R0yl01"
-          ],
-          "updatedAt": "2026-10-08T01:31:13.246Z",
-          "publishedAt": "2026-10-08T01:31:17.547Z"
-        }
-      ]
     }
   ]
 }
