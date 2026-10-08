@@ -28,7 +28,8 @@ button{border:0;border-radius:8px;padding:11px 14px;font-weight:bold;cursor:poin
 .small{font-size:13px;color:#666}
 .url-list{margin-top:10px;padding-left:18px}
 .url-list li{margin:8px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;word-break:break-all}
-.account-bar{display:flex;gap:10px;align-items:center;margin-bottom:15px}
+.account-bar{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.profile-link-box{background:#f9fafb;padding:12px;border-radius:8px;margin-top:15px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -45,29 +46,44 @@ button{border:0;border-radius:8px;padding:11px 14px;font-weight:bold;cursor:poin
   </div>
 
   <section id="panel" hidden>
-    <!-- BAR PEMILIH AKUN & TAMBAH AKUN -->
+    <!-- BAR PEMILIH AKUN & HAPUS AKUN -->
     <div class="card">
-      <h2>Pilih Akun</h2>
+      <h2>Switch Profiles (Pilih Akun)</h2>
       <div class="account-bar">
-        <select id="accountSelect"></select>
+        <select id="accountSelect" style="flex: 1;"></select>
         <button class="primary" id="openAddAccountModal">+ Akun Baru</button>
+        <button class="red" id="deleteAccountBtn">Hapus Akun Ini</button>
       </div>
-      
-      <!-- Form Input Akun Baru (Hidden secara default) -->
-      <div id="newAccountBox" hidden style="margin-top:10px; padding:10px; background:#f9fafb; border-radius:8px;">
-        <label>Nama Akun Baru (contoh: @toko_baju)</label>
+
+      <!-- Form Tambah Akun Baru -->
+      <div id="newAccountBox" hidden style="margin-top:12px; padding:12px; background:#f9fafb; border-radius:8px; border:1px solid #e5e7eb;">
+        <label>Nama Akun / Profil (contoh: @simple_saja)</label>
         <input id="newAccountName" placeholder="Nama akun...">
-        <button class="green" id="saveNewAccount">Simpan Akun</button>
-        <button class="gray" id="cancelNewAccount">Batal</button>
+        <div style="margin-top:8px;">
+          <button class="green" id="saveNewAccount">Simpan Akun</button>
+          <button class="gray" id="cancelNewAccount">Batal</button>
+        </div>
+      </div>
+
+      <!-- Kotak Informasi URL Profil Terpilih & Tombol Copy/Buka -->
+      <div class="profile-link-box">
+        <div>
+          <span class="small" style="display:block; color:#555;">URL Publik Profil Ini:</span>
+          <code id="profileUrlText" style="font-size:14px; font-weight:bold; color:#2563eb;">-</code>
+        </div>
+        <div>
+          <button class="green" id="copyProfileUrl">📋 COPY</button>
+          <button class="primary" id="openProfileUrl" target="_blank">👁 BUKA</button>
+        </div>
       </div>
     </div>
 
     <div class="card">
-      <h2 id="formHeading">Tambah Produk</h2>
+      <h2 id="formHeading">Tambah Link Produk</h2>
       <label>Judul Produk</label>
-      <input id="title" placeholder="Contoh: Hijab Premium">
-      <label>URL Affiliate (pisahkan dengan koma jika banyak)</label>
-      <textarea id="links" placeholder="https://link1.com, https://link2.com"></textarea>
+      <input id="title" placeholder="Contoh: Sepatu Sneakers Pria">
+      <label>URL Affiliate (pisahkan koma jika lebih dari satu)</label>
+      <textarea id="links" placeholder="https://contoh.com/sepatu"></textarea>
       <button class="primary" id="save">Simpan Draft</button>
       <button class="gray" id="cancel">Batal Edit</button>
       <button class="red" id="clear">Hapus Input</button>
@@ -151,16 +167,36 @@ function renderAccounts() {
 }
 
 function changeActiveAccount() {
-  const selectedId = $("accountSelect").value;
+  const selectedId = $("accountSelect"].value \vert{}\vert{} $("accountSelect").value;
   currentAccount = accounts.find(a => a.id === selectedId) || accounts[0];
+  
   if (currentAccount) {
     drafts = currentAccount.drafts || [];
     published = currentAccount.published || [];
+    
+    // Update kotak URL publik profil
+    const currentUrl = window.location.origin + "/?account=" + currentAccount.id; // Sesuaikan routing jika memakai subfolder/subpath
+    // Atau jika berbasis path: window.location.origin + "/" + currentAccount.id
+    const cleanUrl = window.location.origin + "/" + currentAccount.id;
+    $("profileUrlText").textContent = cleanUrl;
+    
     render();
   }
 }
 
 $("accountSelect").onchange = changeActiveAccount;
+
+// Tombol Copy URL Profil
+$("copyProfileUrl").onclick = () => {
+  const url = $("profileUrlText").textContent;
+  navigator.clipboard.writeText(url).then(() => alert("URL profil berhasil disalin ke clipboard!"));
+};
+
+// Tombol Buka URL Profil
+$("openProfileUrl").onclick = () => {
+  const url = $("profileUrlText").textContent;
+  window.open(url, "_blank");
+};
 
 function render() {
   $("drafts").innerHTML = drafts.length ? drafts.map(p => `
@@ -170,7 +206,7 @@ function render() {
         ${(p.urls||[]).map(u => `
           <li>
             <span>${esc(u)}</span>
-            <button class="gray" onclick="navigator.clipboard.writeText('${u}').then(()=>alert('Link disalin!'))">Salin</button>
+            <button class="gray" onclick="navigator.clipboard.writeText('${u}').then(()=>alert('Link disalin!'))">Copy</button>
           </li>
         `).join("")}
       </ul>
@@ -188,7 +224,7 @@ function render() {
         ${(p.urls||[]).map(u => `
           <li>
             <span>${esc(u)}</span>
-            <button class="gray" onclick="navigator.clipboard.writeText('${u}').then(()=>alert('Link disalin!'))">Salin</button>
+            <button class="gray" onclick="navigator.clipboard.writeText('${u}').then(()=>alert('Link disalin!'))">Copy</button>
           </li>
         `).join("")}
       </ul>
@@ -201,21 +237,51 @@ function render() {
 
 $("login").onclick = load;
 
-// Tambah Akun Baru Modal Toggle
+// Tambah Akun
 $("openAddAccountModal").onclick = () => { $("newAccountBox").hidden = false; };
 $("cancelNewAccount").onclick = () => { $("newAccountBox").hidden = true; };
 $("saveNewAccount").onclick = async () => {
   const name = $("newAccountName").value.trim();
   if (!name) return alert("Nama akun tidak boleh kosong");
   try {
-    await fetch("/api/links", {
+    const res = await fetch("/api/links", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "addAccount", password: password(), name })
     });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error);
     $("newAccountName").value = "";
     $("newAccountBox").hidden = true;
     load();
+  } catch (e) {
+    alert(e.message);
+  }
+};
+
+// Hapus Akun
+$("deleteAccountBtn").onclick = async () => {
+  const accountId = $("accountSelect").value;
+  const accountName = $("accountSelect").options[$("accountSelect").selectedIndex].text;
+  
+  if (accounts.length <= 1) {
+    return alert("Tidak dapat menghapus akun terakhir yang tersisa.");
+  }
+  
+  if (!confirm(`Yakin ingin menghapus akun "${accountName}" beserta seluruh link di dalamnya?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/links", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "deleteAccount", password: password(), accountId })
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error);
+    load();
+    alert("Akun berhasil dihapus.");
   } catch (e) {
     alert(e.message);
   }
