@@ -8,7 +8,6 @@
 <title>Affiliate Products</title>
 
 <style>
-
 *{
   box-sizing:border-box;
 }
@@ -107,36 +106,17 @@ input{
   cursor:pointer;
   font-weight:bold;
 }
-
-code{
-  background:#fee2e2;
-  padding:2px 6px;
-  border-radius:4px;
-  font-family:monospace;
-}
-
 </style>
 </head>
 
-
 <body>
 
-
 <header>
-
-  <h1 id="pageTitle">
-    Affiliate Products
-  </h1>
-
-  <p>
-    Temukan produk pilihan kami
-  </p>
-
+  <h1 id="pageTitle">Affiliate Products</h1>
+  <p>Temukan produk pilihan kami</p>
 </header>
 
-
 <main>
-
   <input
     id="search"
     type="search"
@@ -144,45 +124,19 @@ code{
     autocomplete="off"
   >
 
-
   <div id="products">
-
-    <p class="muted">
-      Memuat produk...
-    </p>
-
+    <p class="muted">Memuat produk...</p>
   </div>
-
 </main>
 
-
 <script>
-
-/* =========================
-   DATA PRODUK
-========================= */
-
 let products = [];
-
-
-/* =========================
-   API
-========================= */
-
 const API_URL = "/api/links";
 
-
-/* =========================
-   ESCAPE HTML
-========================= */
-
 function escapeHTML(value){
-
   return String(value ?? "").replace(
     /[&<>"']/g,
-
     function(char){
-
       return {
         "&":"&amp;",
         "<":"&lt;",
@@ -190,292 +144,106 @@ function escapeHTML(value){
         '"':"&quot;",
         "'":"&#39;"
       }[char];
-
     }
   );
-
 }
 
+// Otomatis deteksi ID Akun
+function getAccountId() {
+  // 1. Cek dari parameter ?account=nama_akun
+  const urlParams = new URLSearchParams(window.location.search);
+  const queryAcc = urlParams.get('account');
+  if (queryAcc) return queryAcc;
 
-/* =========================
-   LOAD PRODUK (CARA 1: DARI QUERY URL)
-========================= */
+  // 2. Cek dari path URL biasa /nama_akun
+  const pathAcc = window.location.pathname.replace(/^\/+|\/+$/g, '');
+  if (pathAcc && pathAcc !== 'index.html') return pathAcc;
+
+  // 3. Jika tidak ada di URL, pakai akun fallback ini (ganti 'opal' sesuai ID akun utamamu)
+  return 'opal';
+}
 
 async function loadProducts(){
+  const box = document.getElementById("products");
+  box.innerHTML = '<p class="muted">Memuat produk...</p>';
 
-  const box =
-    document.getElementById("products");
-
-
-  box.innerHTML =
-    '<p class="muted">Memuat produk...</p>';
-
-
-  // 1. Ambil ID Akun dari URL (?account=nama_akun)
-  const urlParams = new URLSearchParams(window.location.search);
-  const accountId = urlParams.get('account');
-
-
-  // 2. Jika tidak ada parameter account di URL
-  if (!accountId) {
-
-    box.innerHTML = `
-
-      <div class="error">
-
-        <strong>
-          Akun Tidak Ditemukan
-        </strong>
-
-        <br>
-        <br>
-
-        Link tidak valid atau belum memilih akun. Pastikan URL Anda berisi nama akun.
-
-        <br>
-        <br>
-
-        Contoh URL yang benar:
-        <br>
-        <code>?account=nama_akun</code>
-
-      </div>
-
-    `;
-
-    return;
-
-  }
-
+  const accountId = getAccountId();
 
   try{
-
-    // 3. Panggil API dengan menyertakan parameter account
-    const response =
-      await fetch(
-        API_URL + "?account=" + encodeURIComponent(accountId) + "&t=" + Date.now(),
-        {
-          method:"GET",
-          cache:"no-store",
-          headers:{
-            "Accept":"application/json"
-          }
-        }
-      );
-
+    const response = await fetch(
+      API_URL + "?account=" + encodeURIComponent(accountId) + "&t=" + Date.now(),
+      {
+        method:"GET",
+        cache:"no-store",
+        headers:{ "Accept":"application/json" }
+      }
+    );
 
     if(!response.ok){
-
-      const errorText =
-        await response.text();
-
-      throw new Error(
-        "API Error " +
-        response.status +
-        ": " +
-        errorText
-      );
-
+      const errorText = await response.text();
+      throw new Error("API Error " + response.status + ": " + errorText);
     }
 
+    const data = await response.json();
 
-    const data =
-      await response.json();
-
-
-    if(
-      !data ||
-      !Array.isArray(data.published)
-    ){
-
-      throw new Error(
-        "Format data API tidak valid."
-      );
-
+    if(!data || !Array.isArray(data.published)){
+      throw new Error("Format data API tidak valid.");
     }
 
-
-    // Jika ada nama akun, ubah judul header secara dinamis
     if (data.name) {
       document.getElementById("pageTitle").textContent = "Affiliate " + data.name;
     }
 
-
-    products =
-      data.published;
-
-
+    products = data.published;
     render();
 
-
   }catch(error){
-
-    console.error(
-      "Gagal memuat produk:",
-      error
-    );
-
-
+    console.error("Gagal memuat produk:", error);
     box.innerHTML = `
-
       <div class="error">
-
-        <strong>
-          Gagal memuat produk
-        </strong>
-
-        <br>
-        <br>
-
-        ${escapeHTML(error.message)}
-
-        <br>
-        <br>
-
-        <button
-          class="retry"
-          onclick="loadProducts()"
-        >
-          Coba Lagi
-        </button>
-
+        <strong>Gagal memuat produk</strong><br><br>
+        ${escapeHTML(error.message)}<br><br>
+        <button class="retry" onclick="loadProducts()">Coba Lagi</button>
       </div>
-
     `;
-
   }
-
 }
-
-
-/* =========================
-   TAMPILKAN PRODUK
-========================= */
 
 function render(){
+  const search = document.getElementById("search");
+  const box = document.getElementById("products");
+  const q = search.value.toLowerCase().trim();
 
-  const search =
-    document.getElementById("search");
-
-
-  const box =
-    document.getElementById("products");
-
-
-  const q =
-    search.value
-      .toLowerCase()
-      .trim();
-
-
-  const found =
-    products.filter(function(product){
-
-      return String(
-        product.title || ""
-      )
-      .toLowerCase()
-      .includes(q);
-
-    });
-
-
-  /* =========================
-     TIDAK ADA PRODUK
-  ========================= */
+  const found = products.filter(function(product){
+    return String(product.title || "").toLowerCase().includes(q);
+  });
 
   if(!found.length){
-
-    box.innerHTML =
-      '<p class="muted">Produk tidak ditemukan.</p>';
-
+    box.innerHTML = '<p class="muted">Produk tidak ditemukan.</p>';
     return;
-
   }
 
+  box.innerHTML = found.map(function(product){
+    const urls = Array.isArray(product.urls) ? product.urls.filter(Boolean) : [];
+    const firstUrl = urls.length > 0 ? urls[0] : "#";
 
-  /* =========================
-     RENDER PRODUK
-  ========================= */
-
-  box.innerHTML =
-    found.map(function(product){
-
-      const urls =
-        Array.isArray(product.urls)
-          ? product.urls.filter(Boolean)
-          : [];
-
-
-      const firstUrl =
-        urls.length > 0
-          ? urls[0]
-          : "#";
-
-
-      return `
-
-        <article class="item">
-
-          <h2>
-            ${escapeHTML(product.title)}
-          </h2>
-
-
-          ${
-            firstUrl !== "#"
-
-              ? `
-
-                <a
-                  class="link"
-                  href="${escapeHTML(firstUrl)}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Lihat Produk ↗
-                </a>
-
-              `
-
-              : `
-
-                <p class="muted">
-                  Link produk belum tersedia.
-                </p>
-
-              `
-          }
-
-        </article>
-
-      `;
-
-    }).join("");
-
+    return `
+      <article class="item">
+        <h2>${escapeHTML(product.title)}</h2>
+        ${
+          firstUrl !== "#"
+            ? `<a class="link" href="${escapeHTML(firstUrl)}" target="_blank" rel="noopener noreferrer">Lihat Produk ↗</a>`
+            : `<p class="muted">Link produk belum tersedia.</p>`
+        }
+      </article>
+    `;
+  }).join("");
 }
 
-
-/* =========================
-   SEARCH
-========================= */
-
-document
-  .getElementById("search")
-  .addEventListener(
-    "input",
-    render
-  );
-
-
-/* =========================
-   JALANKAN
-========================= */
+document.getElementById("search").addEventListener("input", render);
 
 loadProducts();
-
 </script>
-
 
 </body>
 </html>
