@@ -3,7 +3,16 @@
     {
       "id": "simple_saja",
       "name": "@simple_saja",
-      "drafts": [],
+      "drafts": [
+        {
+          "id": "b874f9d6-57a5-4d1b-acb7-3f9b569066f8",
+          "title": "Opal",
+          "urls": [
+            "https://opal.google/app/1WT5zD-vQQpiTy-FIeofb1cHZ63R0yl01"
+          ],
+          "updatedAt": "2026-10-08T01:16:50.395Z"
+        }
+      ],
       "published": []
     },
     {
