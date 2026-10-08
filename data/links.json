@@ -9,7 +9,16 @@
     {
       "id": "produk_murah",
       "name": "@PRODUKMURAH",
-      "drafts": [],
+      "drafts": [
+        {
+          "id": "cf0834d4-b2e2-4d45-bef0-f0b498d6944e",
+          "title": "Sepatu",
+          "urls": [
+            "https://opal.google/app/1WT5zD-vQQpiTy-FIeofb1cHZ63R0yl01"
+          ],
+          "updatedAt": "2026-10-08T01:13:46.553Z"
+        }
+      ],
       "published": []
     },
     {
