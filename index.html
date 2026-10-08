@@ -108,6 +108,13 @@ input{
   font-weight:bold;
 }
 
+code{
+  background:#fee2e2;
+  padding:2px 6px;
+  border-radius:4px;
+  font-family:monospace;
+}
+
 </style>
 </head>
 
@@ -117,7 +124,7 @@ input{
 
 <header>
 
-  <h1>
+  <h1 id="pageTitle">
     Affiliate Products
   </h1>
 
@@ -191,7 +198,7 @@ function escapeHTML(value){
 
 
 /* =========================
-   LOAD PRODUK
+   LOAD PRODUK (CARA 1: DARI QUERY URL)
 ========================= */
 
 async function loadProducts(){
@@ -204,11 +211,49 @@ async function loadProducts(){
     '<p class="muted">Memuat produk...</p>';
 
 
+  // 1. Ambil ID Akun dari URL (?account=nama_akun)
+  const urlParams = new URLSearchParams(window.location.search);
+  const accountId = urlParams.get('account');
+
+
+  // 2. Jika tidak ada parameter account di URL
+  if (!accountId) {
+
+    box.innerHTML = `
+
+      <div class="error">
+
+        <strong>
+          Akun Tidak Ditemukan
+        </strong>
+
+        <br>
+        <br>
+
+        Link tidak valid atau belum memilih akun. Pastikan URL Anda berisi nama akun.
+
+        <br>
+        <br>
+
+        Contoh URL yang benar:
+        <br>
+        <code>?account=nama_akun</code>
+
+      </div>
+
+    `;
+
+    return;
+
+  }
+
+
   try{
 
+    // 3. Panggil API dengan menyertakan parameter account
     const response =
       await fetch(
-        API_URL + "?public=1&t=" + Date.now(),
+        API_URL + "?account=" + encodeURIComponent(accountId) + "&t=" + Date.now(),
         {
           method:"GET",
           cache:"no-store",
@@ -247,6 +292,12 @@ async function loadProducts(){
         "Format data API tidak valid."
       );
 
+    }
+
+
+    // Jika ada nama akun, ubah judul header secara dinamis
+    if (data.name) {
+      document.getElementById("pageTitle").textContent = "Affiliate " + data.name;
     }
 
 
@@ -350,31 +401,11 @@ function render(){
   box.innerHTML =
     found.map(function(product){
 
-
-      /*
-       * Ambil semua URL
-       *
-       * Contoh data:
-       *
-       * urls: [
-       *   "https://link1.com",
-       *   "https://link2.com",
-       *   "https://link3.com"
-       * ]
-       *
-       * Tetapi di halaman user
-       * hanya ditampilkan SATU tombol.
-       */
-
       const urls =
         Array.isArray(product.urls)
           ? product.urls.filter(Boolean)
           : [];
 
-
-      /*
-       * Gunakan LINK PERTAMA
-       */
 
       const firstUrl =
         urls.length > 0
