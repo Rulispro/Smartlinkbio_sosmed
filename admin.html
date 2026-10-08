@@ -1,8 +1,9 @@
-<!DOCTYPE html><html lang="id">
+<!DOCTYPE html>
+<html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Admin Panel</title>
+<title>Admin Panel - Multi Akun</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f3f4f6;color:#222;font-family:Arial,sans-serif}
@@ -11,7 +12,7 @@ main{max-width:800px;margin:20px auto;padding:0 14px}
 .card{background:white;border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px #0000000a}
 h2{font-size:19px;margin:0 0 14px}
 label{display:block;font-weight:bold;margin:13px 0 6px}
-input,textarea{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;font-size:15px}
+input,textarea,select{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;font-size:15px}
 textarea{min-height:100px;resize:vertical}
 button{border:0;border-radius:8px;padding:11px 14px;font-weight:bold;cursor:pointer;margin:5px 4px 0 0}
 .primary{background:#2563eb;color:white}
@@ -20,617 +21,251 @@ button{border:0;border-radius:8px;padding:11px 14px;font-weight:bold;cursor:poin
 .gray{background:#e5e7eb;color:#222}
 .entry{border:1px solid #e5e7eb;border-radius:9px;padding:13px;margin-top:10px;overflow-wrap:anywhere}
 .entry h3{margin:0 0 8px;font-size:16px}
-.entry p{font-size:13px;color:#555;margin:4px 0}
 .status{display:none;padding:11px;border-radius:8px;margin-bottom:12px}
 .status.show{display:block}
 .ok{background:#dcfce7;color:#166534}
 .err{background:#fee2e2;color:#991b1b}
 .small{font-size:13px;color:#666}
 .url-list{margin-top:10px;padding-left:18px}
-.url-list li{margin:6px 0;word-break:break-all}
-.actions{margin-top:8px}
+.url-list li{margin:8px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;word-break:break-all}
+.account-bar{display:flex;gap:10px;align-items:center;margin-bottom:15px}
 </style>
-</head><body><header>
-  <h1>Admin Panel</h1>
-</header><main>  <div class="card">
-    <h2>Login Admin</h2><div id="status" class="status"></div>
+</head>
+<body>
+<header>
+  <h1>Admin Panel Multi-Akun</h1>
+</header>
+<main>
+  <div class="card">
+    <h2>Login Admin</h2>
+    <div id="status" class="status"></div>
+    <label>Password Admin</label>
+    <input id="password" type="password" placeholder="Masukkan password admin">
+    <button class="primary" id="login">Masuk / Muat Akun</button>
+  </div>
 
-<label>Password Admin</label>
-<input id="password" type="password" placeholder="Masukkan password admin">
+  <section id="panel" hidden>
+    <!-- BAR PEMILIH AKUN & TAMBAH AKUN -->
+    <div class="card">
+      <h2>Pilih Akun</h2>
+      <div class="account-bar">
+        <select id="accountSelect"></select>
+        <button class="primary" id="openAddAccountModal">+ Akun Baru</button>
+      </div>
+      
+      <!-- Form Input Akun Baru (Hidden secara default) -->
+      <div id="newAccountBox" hidden style="margin-top:10px; padding:10px; background:#f9fafb; border-radius:8px;">
+        <label>Nama Akun Baru (contoh: @toko_baju)</label>
+        <input id="newAccountName" placeholder="Nama akun...">
+        <button class="green" id="saveNewAccount">Simpan Akun</button>
+        <button class="gray" id="cancelNewAccount">Batal</button>
+      </div>
+    </div>
 
-<button class="primary" id="login">
-  Masuk / Muat Data
-</button>
+    <div class="card">
+      <h2 id="formHeading">Tambah Produk</h2>
+      <label>Judul Produk</label>
+      <input id="title" placeholder="Contoh: Hijab Premium">
+      <label>URL Affiliate (pisahkan dengan koma jika banyak)</label>
+      <textarea id="links" placeholder="https://link1.com, https://link2.com"></textarea>
+      <button class="primary" id="save">Simpan Draft</button>
+      <button class="gray" id="cancel">Batal Edit</button>
+      <button class="red" id="clear">Hapus Input</button>
+    </div>
 
-<p class="small">
-  Password diverifikasi oleh API, bukan disimpan di halaman.
-</p>
+    <div class="card">
+      <h2>Draft</h2>
+      <button class="green" id="publish">Publish Semua Draft</button>
+      <div id="drafts"></div>
+    </div>
 
-  </div>  <section id="panel" hidden><div class="card">
+    <div class="card">
+      <h2>Sudah Dipublikasikan</h2>
+      <div id="published"></div>
+    </div>
+  </section>
+</main>
 
-  <h2 id="formHeading">Tambah Produk</h2>
+<script>
+let accounts = [];
+let currentAccount = null;
+let drafts = [];
+let published = [];
+let editingId = null;
 
-  <label>Judul Produk</label>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+}[c]));
 
-  <input
-    id="title"
-    placeholder="Contoh: Hijab Premium"
-  >
-
-  <label>URL Affiliate</label>
-
-  <textarea
-    id="links"
-    placeholder="https://link1.com, https://link2.com, https://link3.com"
-  ></textarea>
-
-  <p class="small">
-    Jika lebih dari satu link, pisahkan dengan koma.
-    Contoh: link1, link2, link3
-  </p>
-
-  <button class="primary" id="save">
-    Simpan Draft
-  </button>
-
-  <button class="gray" id="cancel">
-    Batal Edit
-  </button>
-
-  <button class="red" id="clear">
-    Hapus Input
-  </button>
-
-</div>
-
-
-<div class="card">
-
-  <h2>Draft</h2>
-
-  <button class="green" id="publish">
-    Publish Semua Draft
-  </button>
-
-  <div id="drafts"></div>
-
-</div>
-
-
-<div class="card">
-
-  <h2>Sudah Dipublikasikan</h2>
-
-  <div id="published"></div>
-
-</div>
-
-  </section></main><script>
-
-let drafts=[];
-let published=[];
-let editingId=null;
-
-const $=id=>document.getElementById(id);
-
-const esc=s=>
-  String(s??"").replace(/[&<>"']/g,c=>({
-    "&":"&amp;",
-    "<":"&lt;",
-    ">":"&gt;",
-    '"':"&quot;",
-    "'":"&#39;"
-  }[c]));
-
-
-function message(s,ok=false){
-
-  $("status").textContent=s;
-
-  $("status").className=
-    "status show "+(ok?"ok":"err");
-
+function message(s, ok=false) {
+  $("status").textContent = s;
+  $("status").className = "status show " + (ok ? "ok" : "err");
 }
 
-
-function password(){
-
+function password() {
   return $("password").value.trim();
-
 }
 
-
-/* Membersihkan form */
-
-function clearForm(){
-
-  editingId=null;
-
-  $("title").value="";
-
-  $("links").value="";
-
-  $("formHeading").textContent="Tambah Produk";
-
-  $("save").textContent="Simpan Draft";
-
-}
-
-
-/* Ambil URL dari textarea */
-
-function getUrls(){
-
-  return $("links").value
-    .split(",")
-    .map(x=>x.trim())
-    .filter(Boolean);
-
-}
-
-
-/* API */
-
-async function api(action,extra={}){
-
-  const r=await fetch("/api/links",{
-
-    method:"POST",
-
-    headers:{
-      "Content-Type":"application/json"
-    },
-
-    body:JSON.stringify({
-      action,
-      password:password(),
-      ...extra
-    })
-
+async function api(action, extra = {}) {
+  const accountId = $("accountSelect") ? $("accountSelect").value : "";
+  const r = await fetch("/api/links", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, password: password(), accountId, ...extra })
   });
-
-  const d=await r.json();
-
-  if(!r.ok)
-    throw Error(d.error||"Permintaan gagal");
-
+  const d = await r.json();
+  if (!r.ok) throw Error(d.error || "Permintaan gagal");
   return d;
-
 }
 
+async function load() {
+  if (!password()) return message("Masukkan password admin.");
+  try {
+    const r = await fetch("/api/links?admin=1", {
+      headers: { "x-admin-password": password() },
+      cache: "no-store"
+    });
+    const d = await r.json();
+    if (!r.ok) throw Error(d.error || "Login gagal");
 
-/* Load data */
-
-async function load(){
-
-  if(!password()){
-
-    message("Masukkan password admin.");
-
-    return;
-
+    accounts = d.accounts || [];
+    renderAccounts();
+    $("panel").hidden = false;
+    message("Berhasil masuk.", true);
+  } catch(e) {
+    $("panel").hidden = true;
+    message(e.message);
   }
+}
 
-  try{
+function renderAccounts() {
+  const select = $("accountSelect");
+  const selectedId = select.value || (accounts[0] ? accounts[0].id : "");
+  
+  select.innerHTML = accounts.map(acc => `
+    <option value="${acc.id}" ${acc.id === selectedId ? "selected" : ""}>${esc(acc.name)}</option>
+  `).join("");
 
-    const r=await fetch(
-      "/api/links?admin=1",
-      {
-        headers:{
-          "x-admin-password":password()
-        },
-        cache:"no-store"
-      }
-    );
+  changeActiveAccount();
+}
 
-    const d=await r.json();
-
-    if(!r.ok)
-      throw Error(d.error||"Login gagal");
-
-    drafts=d.drafts||[];
-
-    published=d.published||[];
-
-    $("panel").hidden=false;
-
+function changeActiveAccount() {
+  const selectedId = $("accountSelect").value;
+  currentAccount = accounts.find(a => a.id === selectedId) || accounts[0];
+  if (currentAccount) {
+    drafts = currentAccount.drafts || [];
+    published = currentAccount.published || [];
     render();
-
-    message(
-      "Berhasil masuk dan memuat data.",
-      true
-    );
-
-  }catch(e){
-
-    $("panel").hidden=true;
-
-    message(e.message);
-
   }
-
 }
 
+$("accountSelect").onchange = changeActiveAccount;
 
-/* Render */
-
-function render(){
-
-  $("drafts").innerHTML=
-
-    drafts.length
-
-    ?
-
-    drafts.map(p=>`
-
-      <div class="entry">
-
-        <h3>${esc(p.title)}</h3>
-
-        <ul class="url-list">
-
-          ${(p.urls||[]).map((u,i)=>`
-
-            <li>
-              ${esc(u)}
-            </li>
-
-          `).join("")}
-
-        </ul>
-
-        <div class="actions">
-
-          <button
-            class="primary"
-            data-edit="${esc(p.id)}"
-          >
-            Edit
-          </button>
-
-          <button
-            class="red"
-            data-delete-draft="${esc(p.id)}"
-          >
-            Hapus
-          </button>
-
-        </div>
-
+function render() {
+  $("drafts").innerHTML = drafts.length ? drafts.map(p => `
+    <div class="entry">
+      <h3>${esc(p.title)}</h3>
+      <ul class="url-list">
+        ${(p.urls||[]).map(u => `
+          <li>
+            <span>${esc(u)}</span>
+            <button class="gray" onclick="navigator.clipboard.writeText('${u}').then(()=>alert('Link disalin!'))">Salin</button>
+          </li>
+        `).join("")}
+      </ul>
+      <div class="actions">
+        <button class="primary" data-edit="${esc(p.id)}">Edit</button>
+        <button class="red" data-delete-draft="${esc(p.id)}">Hapus</button>
       </div>
+    </div>
+  `).join("") : '<p class="small">Belum ada draft.</p>';
 
-    `).join("")
-
-    :
-
-    '<p class="small">Belum ada draft.</p>';
-
-
-  $("published").innerHTML=
-
-    published.length
-
-    ?
-
-    published.map(p=>`
-
-      <div class="entry">
-
-        <h3>${esc(p.title)}</h3>
-
-        <ul class="url-list">
-
-          ${(p.urls||[]).map((u,i)=>`
-
-            <li>
-              ${esc(u)}
-            </li>
-
-          `).join("")}
-
-        </ul>
-
-        <span class="small">
-          Published
-        </span>
-
-        <div class="actions">
-
-          <button
-            class="red"
-            data-delete-published="${esc(p.id)}"
-          >
-            Hapus
-          </button>
-
-        </div>
-
+  $("published").innerHTML = published.length ? published.map(p => `
+    <div class="entry">
+      <h3>${esc(p.title)}</h3>
+      <ul class="url-list">
+        ${(p.urls||[]).map(u => `
+          <li>
+            <span>${esc(u)}</span>
+            <button class="gray" onclick="navigator.clipboard.writeText('${u}').then(()=>alert('Link disalin!'))">Salin</button>
+          </li>
+        `).join("")}
+      </ul>
+      <div class="actions">
+        <button class="red" data-delete-published="${esc(p.id)}">Hapus</button>
       </div>
-
-    `).join("")
-
-    :
-
-    '<p class="small">Belum ada produk yang dipublikasikan.</p>';
-
+    </div>
+  `).join("") : '<p class="small">Belum ada produk dipublikasikan.</p>';
 }
 
+$("login").onclick = load;
 
-/* Login */
-
-$("login").onclick=load;
-
-
-/* Simpan */
-
-$("save").onclick=async()=>{
-
-  const title=$("title").value.trim();
-
-  const urls=getUrls();
-
-  if(!password())
-    return message("Masukkan password admin.");
-
-  if(!title)
-    return message("Judul produk wajib diisi.");
-
-  if(!urls.length)
-    return message("Masukkan minimal satu URL.");
-
-  if(
-    urls.some(u=>{
-      try{
-        return !["http:","https:"]
-          .includes(new URL(u).protocol);
-      }catch{
-        return true;
-      }
-    })
-  ){
-
-    return message(
-      "Pastikan semua URL valid dan diawali http:// atau https://."
-    );
-
+// Tambah Akun Baru Modal Toggle
+$("openAddAccountModal").onclick = () => { $("newAccountBox").hidden = false; };
+$("cancelNewAccount").onclick = () => { $("newAccountBox").hidden = true; };
+$("saveNewAccount").onclick = async () => {
+  const name = $("newAccountName").value.trim();
+  if (!name) return alert("Nama akun tidak boleh kosong");
+  try {
+    await fetch("/api/links", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "addAccount", password: password(), name })
+    });
+    $("newAccountName").value = "";
+    $("newAccountBox").hidden = true;
+    load();
+  } catch (e) {
+    alert(e.message);
   }
-
-
-  try{
-
-    await api(
-      "saveDraft",
-      {
-        item:{
-          id:editingId||crypto.randomUUID(),
-          title,
-          urls,
-          updatedAt:new Date().toISOString()
-        }
-      }
-    );
-
-    clearForm();
-
-    await load();
-
-    message(
-      "Draft berhasil disimpan.",
-      true
-    );
-
-  }catch(e){
-
-    message(e.message);
-
-  }
-
 };
 
+$("save").onclick = async () => {
+  const title = $("title").value.trim();
+  const urls = $("links").value.split(",").map(x => x.trim()).filter(Boolean);
+  if (!title || !urls.length) return message("Judul dan minimal 1 URL wajib diisi.");
 
-/* Batal edit */
-
-$("cancel").onclick=()=>{
-
-  clearForm();
-
-  message(
-    "Input dikosongkan.",
-    true
-  );
-
+  try {
+    await api("saveDraft", {
+      item: { id: editingId || crypto.randomUUID(), title, urls }
+    });
+    editingId = null;
+    $("title").value = "";
+    $("links").value = "";
+    load();
+    message("Draft disimpan.", true);
+  } catch(e) { message(e.message); }
 };
 
-
-/* Hapus input */
-
-$("clear").onclick=()=>{
-
-  if(
-    $("title").value ||
-    $("links").value
-  ){
-
-    if(!confirm("Hapus judul dan semua link dari input?"))
-      return;
-
+$("drafts").onclick = e => {
+  const edit = e.target.dataset.edit;
+  const del = e.target.dataset.deleteDraft;
+  if (edit) {
+    const p = drafts.find(x => x.id === edit);
+    if (!p) return;
+    editingId = p.id;
+    $("title").value = p.title;
+    $("links").value = p.urls.join(", ");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
-
-  clearForm();
-
-  message(
-    "Input berhasil dikosongkan.",
-    true
-  );
-
+  if (del && confirm("Hapus draft ini?")) {
+    api("deleteDraft", { id: del }).then(load);
+  }
 };
 
-
-/* Tombol Edit / Hapus */
-
-$("drafts").addEventListener(
-  "click",
-  async e=>{
-
-    const edit=
-      e.target.dataset.edit;
-
-    const del=
-      e.target.dataset.deleteDraft;
-
-
-    /* EDIT */
-
-    if(edit){
-
-      const p=
-        drafts.find(x=>x.id===edit);
-
-      if(!p)return;
-
-      editingId=p.id;
-
-      $("title").value=
-        p.title||"";
-
-      $("links").value=
-        (p.urls||[]).join(", ");
-
-      $("formHeading").textContent=
-        "Edit Draft";
-
-      $("save").textContent=
-        "Simpan Perubahan";
-
-      window.scrollTo({
-        top:0,
-        behavior:"smooth"
-      });
-
-      return;
-
-    }
-
-
-    /* HAPUS DRAFT */
-
-    if(del){
-
-      if(
-        !confirm(
-          "Hapus draft ini?\nJudul dan semua link akan dihapus."
-        )
-      )
-        return;
-
-      try{
-
-        await api(
-          "deleteDraft",
-          {id:del}
-        );
-
-        if(editingId===del)
-          clearForm();
-
-        await load();
-
-        message(
-          "Draft berhasil dihapus.",
-          true
-        );
-
-      }catch(e){
-
-        message(e.message);
-
-      }
-
-    }
-
+$("published").onclick = e => {
+  const id = e.target.dataset.deletePublished;
+  if (id && confirm("Hapus produk ini?")) {
+    api("deletePublished", { id }).then(load);
   }
-);
-
-
-/* Hapus Published */
-
-$("published").addEventListener(
-  "click",
-  async e=>{
-
-    const id=
-      e.target.dataset.deletePublished;
-
-    if(!id)return;
-
-    if(
-      !confirm(
-        "Hapus produk yang sudah dipublikasikan?"
-      )
-    )
-      return;
-
-    try{
-
-      await api(
-        "deletePublished",
-        {id}
-      );
-
-      await load();
-
-      message(
-        "Produk published berhasil dihapus.",
-        true
-      );
-
-    }catch(e){
-
-      message(e.message);
-
-    }
-
-  }
-);
-
-
-/* Publish */
-
-$("publish").onclick=async()=>{
-
-  if(!drafts.length)
-    return message(
-      "Tidak ada draft untuk dipublikasikan."
-    );
-
-  if(
-    !confirm(
-      "Publikasikan semua draft?"
-    )
-  )
-    return;
-
-  try{
-
-    await api("publishAll");
-
-    clearForm();
-
-    await load();
-
-    message(
-      "Draft berhasil dipublikasikan.",
-      true
-    );
-
-  }catch(e){
-
-    message(e.message);
-
-  }
-
 };
 
-</script></body>
+$("publish").onclick = () => {
+  if (confirm("Publikasikan semua draft?")) {
+    api("publishAll").then(load);
+  }
+};
+</script>
+</body>
 </html>
