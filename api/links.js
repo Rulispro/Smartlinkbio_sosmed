@@ -16,7 +16,6 @@ function fileUrl(c) {
 
 async function gh(url, options = {}) {
   const c = config();
-
   const r = await fetch(url, {
     ...options,
     headers: {
@@ -29,7 +28,6 @@ async function gh(url, options = {}) {
   });
 
   const text = await r.text();
-
   let data = {};
   try {
     data = text ? JSON.parse(text) : {};
@@ -38,42 +36,23 @@ async function gh(url, options = {}) {
   }
 
   if (!r.ok) {
-    const error = new Error(
-      data.message || `GitHub error ${r.status}`
-    );
-
+    const error = new Error(data.message || `GitHub error ${r.status}`);
     error.status = r.status;
     throw error;
   }
-
   return data;
 }
 
 function checkConfig() {
   const c = config();
-
-  if (!c.token) {
-    throw new Error("GITHUB_TOKEN belum diatur di Vercel.");
+  if (!c.token || !c.owner || !c.repo || !c.password) {
+    throw new Error("Konfigurasi environment Vercel belum lengkap.");
   }
-
-  if (!c.owner) {
-    throw new Error("GITHUB_OWNER belum diatur di Vercel.");
-  }
-
-  if (!c.repo) {
-    throw new Error("GITHUB_REPO belum diatur di Vercel.");
-  }
-
-  if (!c.password) {
-    throw new Error("ADMIN_PASSWORD belum diatur di Vercel.");
-  }
-
   return c;
 }
 
 function checkPassword(password) {
   const c = config();
-
   if (typeof password !== "string" || password !== c.password) {
     const error = new Error("Password Admin salah.");
     error.status = 401;
@@ -83,55 +62,47 @@ function checkPassword(password) {
 
 async function getData() {
   const c = config();
-
-  // PENTING:
-  // URL dibuat langsung di sini, bukan menggunakan teks literal ${fileUrl(c)}
-  const url =
-    fileUrl(c) +
-    `?ref=${encodeURIComponent(c.branch)}`;
-
+  const url = fileUrl(c) + `?ref=${encodeURIComponent(c.branch)}`;
   const file = await gh(url);
 
   if (!file.content) {
     throw new Error("File data/links.json tidak memiliki content.");
   }
 
-  const raw = Buffer.from(
-    file.content.replace(/\n/g, ""),
-    "base64"
-  ).toString("utf8");
-
+  const raw = Buffer.from(file.content.replace(/\n/g, ""), "base64").toString("utf8");
   let data;
-
   try {
     data = JSON.parse(raw);
   } catch {
-    throw new Error(
-      "Isi data/links.json bukan JSON yang valid."
-    );
+    throw new Error("Isi data/links.json bukan JSON yang valid.");
   }
 
-  return {
-    data,
-    sha: file.sha
-  };
+  // Fallback jika struktur lama
+  if (!data.accounts) {
+    data = {
+      accounts: [
+        {
+          id: "default",
+          name: "Akun Utama",
+          drafts: data.drafts || [],
+          published: data.published || []
+        }
+      ]
+    };
+  }
+
+  return { data, sha: file.sha };
 }
 
 async function saveData(data, sha) {
   const c = config();
-
-  const content = Buffer.from(
-    JSON.stringify(data, null, 2),
-    "utf8"
-  ).toString("base64");
-
+  const content = Buffer.from(JSON.stringify(data, null, 2), "utf8").toString("base64");
   const url = fileUrl(c);
 
   return await gh(url, {
     method: "PUT",
-
     body: JSON.stringify({
-      message: "Update affiliate links",
+      message: "Update multi-account affiliate links",
       content,
       sha,
       branch: c.branch
@@ -143,243 +114,120 @@ export default async function handler(req, res) {
   try {
     checkConfig();
 
-    // =========================
-    // GET
-    // =========================
     if (req.method === "GET") {
       const { data } = await getData();
+      
+      // Public view (bisa filter berdasar accountId di query)
+      const accountId = req.query.account || data.accounts[0]?.id;
+      const account = data.accounts.find(a => a.id === accountId) || data.accounts[0];
 
-      const drafts = Array.isArray(data.drafts)
-        ? data.drafts
-        : [];
-
-      const published = Array.isArray(data.published)
-        ? data.published
-        : [];
-
-      // Admin
       if (req.query.admin === "1") {
-        checkPassword(
-          req.headers["x-admin-password"]
-        );
-
+        checkPassword(req.headers["x-admin-password"]);
         return res.status(200).json({
-          drafts,
-          published
+          accounts: data.accounts,
+          selectedAccount: account
         });
       }
 
-      // Public
       return res.status(200).json({
-        published
+        published: account ? account.published : []
       });
     }
 
-    // =========================
-    // POST
-    // =========================
     if (req.method === "POST") {
       let body = req.body || {};
-
-      // Kadang Vercel menerima body sebagai string
       if (typeof body === "string") {
-        try {
-          body = JSON.parse(body);
-        } catch {
-          return res.status(400).json({
-            error: "Request body bukan JSON yang valid."
-          });
+        try { body = JSON.parse(body); } catch {
+          return res.status(400).json({ error: "Request body bukan JSON valid." });
         }
       }
 
       checkPassword(body.password);
-
       const { data, sha } = await getData();
 
-      data.drafts = Array.isArray(data.drafts)
-        ? data.drafts
-        : [];
+      const accountId = body.accountId;
 
-      data.published = Array.isArray(data.published)
-        ? data.published
-        : [];
+      // Tambah Akun Baru
+      if (body.action === "addAccount") {
+        const name = body.name ? body.name.trim() : "";
+        if (!name) return res.status(400).json({ error: "Nama akun wajib diisi." });
+        
+        const newId = name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+        if (data.accounts.some(a => a.id === newId)) {
+          return res.status(400).json({ error: "Akun dengan nama tersebut sudah ada." });
+        }
 
-      // =========================
-      // SAVE DRAFT
-      // =========================
+        data.accounts.push({
+          id: newId,
+          name: name,
+          drafts: [],
+          published: []
+        });
+
+        await saveData(data, sha);
+        return res.status(200).json({ success: true, message: "Akun berhasil ditambahkan." });
+      }
+
+      const account = data.accounts.find(a => a.id === accountId);
+      if (!account) {
+        return res.status(404).json({ error: "Akun tidak ditemukan." });
+      }
+
+      account.drafts = Array.isArray(account.drafts) ? account.drafts : [];
+      account.published = Array.isArray(account.published) ? account.published : [];
+
       if (body.action === "saveDraft") {
         const p = body.item;
-
-        if (
-          !p ||
-          typeof p.id !== "string" ||
-          typeof p.title !== "string" ||
-          !p.title.trim() ||
-          !Array.isArray(p.urls) ||
-          !p.urls.length
-        ) {
-          return res.status(400).json({
-            error: "Data produk tidak valid."
-          });
+        if (!p || !p.title || !p.title.trim() || !Array.isArray(p.urls) || !p.urls.length) {
+          return res.status(400).json({ error: "Data produk tidak valid." });
         }
 
-        const urls = p.urls
-          .map(u => String(u).trim())
-          .filter(Boolean);
-
-        if (!urls.length) {
-          return res.status(400).json({
-            error: "Minimal satu link diperlukan."
-          });
-        }
-
-        for (const url of urls) {
-          if (!/^https?:\/\//i.test(url)) {
-            return res.status(400).json({
-              error: `URL tidak valid: ${url}`
-            });
-          }
-        }
-
+        const urls = p.urls.map(u => String(u).trim()).filter(Boolean);
         const item = {
-          id: p.id,
+          id: p.id || crypto.randomUUID(),
           title: p.title.trim(),
           urls,
           updatedAt: new Date().toISOString()
         };
 
-        const index = data.drafts.findIndex(
-          x => x.id === item.id
-        );
-
-        if (index >= 0) {
-          data.drafts[index] = item;
-        } else {
-          data.drafts.push(item);
-        }
+        const index = account.drafts.findIndex(x => x.id === item.id);
+        if (index >= 0) account.drafts[index] = item;
+        else account.drafts.push(item);
 
         await saveData(data, sha);
-
-        return res.status(200).json({
-          success: true,
-          message: "Draft berhasil disimpan."
-        });
+        return res.status(200).json({ success: true, message: "Draft berhasil disimpan." });
       }
 
-      // =========================
-      // DELETE DRAFT
-      // =========================
       if (body.action === "deleteDraft") {
-        if (typeof body.id !== "string") {
-          return res.status(400).json({
-            error: "ID draft tidak valid."
-          });
-        }
-
-        const before = data.drafts.length;
-
-        data.drafts = data.drafts.filter(
-          x => x.id !== body.id
-        );
-
-        if (data.drafts.length === before) {
-          return res.status(404).json({
-            error: "Draft tidak ditemukan."
-          });
-        }
-
+        account.drafts = account.drafts.filter(x => x.id !== body.id);
         await saveData(data, sha);
-
-        return res.status(200).json({
-          success: true,
-          message: "Draft berhasil dihapus."
-        });
+        return res.status(200).json({ success: true, message: "Draft dihapus." });
       }
 
-      // =========================
-      // DELETE PUBLISHED
-      // =========================
       if (body.action === "deletePublished") {
-        if (typeof body.id !== "string") {
-          return res.status(400).json({
-            error: "ID produk tidak valid."
-          });
-        }
-
-        const before = data.published.length;
-
-        data.published = data.published.filter(
-          x => x.id !== body.id
-        );
-
-        if (data.published.length === before) {
-          return res.status(404).json({
-            error: "Produk published tidak ditemukan."
-          });
-        }
-
+        account.published = account.published.filter(x => x.id !== body.id);
         await saveData(data, sha);
-
-        return res.status(200).json({
-          success: true,
-          message: "Produk berhasil dihapus."
-        });
+        return res.status(200).json({ success: true, message: "Produk published dihapus." });
       }
 
-      // =========================
-      // PUBLISH ALL
-      // =========================
       if (body.action === "publishAll") {
-        if (!data.drafts.length) {
-          return res.status(400).json({
-            error: "Tidak ada draft untuk dipublish."
-          });
-        }
-
+        if (!account.drafts.length) return res.status(400).json({ error: "Tidak ada draft." });
         const now = new Date().toISOString();
-
-        const publishedItems = data.drafts.map(item => ({
-          ...item,
-          publishedAt: now
-        }));
-
-        data.published.push(
-          ...publishedItems
-        );
-
-        data.drafts = [];
+        const publishedItems = account.drafts.map(item => ({ ...item, publishedAt: now }));
+        account.published.push(...publishedItems);
+        account.drafts = [];
 
         await saveData(data, sha);
-
-        return res.status(200).json({
-          success: true,
-          message: "Semua draft berhasil dipublish."
-        });
+        return res.status(200).json({ success: true, message: "Semua draft dipublikasikan." });
       }
 
-      return res.status(400).json({
-        error: "Action tidak dikenal."
-      });
+      return res.status(400).json({ error: "Action tidak dikenal." });
     }
 
-    res.setHeader(
-      "Allow",
-      "GET, POST"
-    );
-
-    return res.status(405).json({
-      error: "Method tidak diizinkan."
-    });
-
+    res.setHeader("Allow", "GET, POST");
+    return res.status(405).json({ error: "Method tidak diizinkan." });
   } catch (error) {
     console.error("API ERROR:", error);
-
-    return res.status(
-      error.status || 500
-    ).json({
-      error:
-        error.message ||
-        "Terjadi kesalahan server."
-    });
+    return res.status(error.status || 500).json({ error: error.message || "Kesalahan server." });
   }
 }
