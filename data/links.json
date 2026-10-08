@@ -41,7 +41,16 @@
     {
       "id": "claude_ai",
       "name": "@Claude ai",
-      "drafts": [],
+      "drafts": [
+        {
+          "id": "6ec8d603-8c36-48ad-9019-a39fbcbf635e",
+          "title": "Claude ai",
+          "urls": [
+            "https://claude.ai/chat/92c69875-0e65-4763-8e01-297a08858714"
+          ],
+          "updatedAt": "2026-10-08T01:41:48.985Z"
+        }
+      ],
       "published": []
     }
   ]
